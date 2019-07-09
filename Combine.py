@@ -11,7 +11,7 @@ cap = cv.VideoCapture(0)
 ret, old_frame = cap.read()
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 connection_string = ""
-vehicle = dk.connect(connection_string, wait_ready=True)
+vehicle = dk.connect(connection_string, wait_ready=True) # connect to the vehicle
 VELOCITY = 2
 DURATION = 20
 
@@ -51,27 +51,6 @@ def send_ned_velocity(velocity_x, velocity_y, velocity_z):
         0, 0)  # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink)
     vehicle.send_mavlink(msg)
     vehicle.flush()
-
-#
-# def condition_yaw(heading, relative=False):
-#     if relative:
-#         is_relative = 1  # yaw relative to direction of travel
-#     else:
-#         is_relative = 0  # yaw is an absolute angle
-#     # create the CONDITION_YAW command using command_long_encode()
-#     msg = vehicle.message_factory.command_long_encode(
-#         0, 0,  # target system, target component
-#         mavutil.mavlink.MAV_CMD_CONDITION_YAW,  # command
-#         0,  # confirmation
-#         heading,  # param 1, yaw in degrees
-#         0,  # param 2, yaw speed deg/s
-#         1,  # param 3, direction -1 ccw, 1 cw
-#         is_relative,  # param 4, relative offset 1, absolute angle 0
-#         0, 0, 0)  # param 5 ~ 7 not used
-#     # send command to vehicle
-#     vehicle.send_mavlink(msg)
-#     vehicle.flush()
-
 
 def goto_position_target_local_ned(north, east, down):
     msg = vehicle.message_factory.set_position_target_local_ned_encode(
@@ -129,35 +108,35 @@ def main():
             area = cv.contourArea(contours[i])
             if area > 10000:
                 contours[0] = contours[i]
-                x, y, w, h = cv.boundingRect(contours[i])
+                x, y, w, h = cv.boundingRect(contours[i]) # then coordinate and height and width of the bounding box
                 cv.rectangle(frame_gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 center_x = x + w / 2
                 if (not x):  # determine the direction of the drone
                     if (center_x < 160):
-                        if (x + w <= 160):
+                        if (x + w <= 160): # when the obstacle is on the left side of the screen < 160
                             print("go straight")
                         else:
-                            print("turn left")
-                            send_ned_velocity(0, 0, 0)
+                            print("turn left") # when the obstacle is on the left side but it's > 160
+                            send_ned_velocity(0, 0, 0) # stop the vehicle for 5 seconds
                             time.sleep(5)
-                            goto_position_target_local_ned(0, -0.5, 0)
+                            goto_position_target_local_ned(0, -0.5, 0) # move left for 0.5 meters
                             time.sleep(5)
-                            vehicle.simple_goto(waypoint)
+                            vehicle.simple_goto(waypoint) # continue the journey
                     elif (center_x > 160) and (center_x <= 320):
-                        print("turn left")
+                        print("turn left") # the obstacle is on the center_left of the screen
                         send_ned_velocity(0, 0, 0)
                         time.sleep(5)
                         goto_position_target_local_ned(0, -0.5, 0)
                         time.sleep(5)
                         vehicle.simple_goto(waypoint)
-                    elif (center_x > 320) and (center_x < 480):
+                    elif (center_x > 320) and (center_x < 480): # the obstacle is on the center_right of the screen
                         print("turn right")
-                        send_ned_velocity(0, 0, 0)
+                        send_ned_velocity(0, 0, 0) # stop the vehicle for 5 seconds
                         time.sleep(5)
-                        goto_position_target_local_ned(0, 0.5, 0)
+                        goto_position_target_local_ned(0, 0.5, 0) # move left for 0.5 meters
                         time.sleep(5)
-                        vehicle.simple_goto(waypoint)
-                    elif (center_x >= 480):
+                        vehicle.simple_goto(waypoint) # continue the journey
+                    elif (center_x >= 480): # the obstacle is on the right of the screen
                         if (x < 480):
                             print("turn right")
                             send_ned_velocity(0, 0, 0)
@@ -173,11 +152,11 @@ def main():
         key = cv.waitKey(30)
         if key == ord('q'):
             break
-        lat = vehicle.location.global_relative_frame.lat
-        lon = vehicle.location.global_relative_frame.lon
-        if lat == init_lat and lon == init_lon:
+        lat = vehicle.location.global_relative_frame.lat # get the current latitude
+        lon = vehicle.location.global_relative_frame.lon # get the current longitude
+        if lat == init_lat and lon == init_lon: # check whether the vehicle is arrived or not
             break
-    send_ned_velocity(0, 0, 0)
+    send_ned_velocity(0, 0, 0) # stop the vehicle
     print("Landing")
     vehicle.mode = dk.VehicleMode("LAND")
     vehicle.flush()
