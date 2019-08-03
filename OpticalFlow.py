@@ -20,6 +20,9 @@ ret, old_frame = cap.read()
 # old_frame = np.concatenate((frame1, frame2), axis=1)
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 p0 = cv.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+fourcc = cv.VideoWriter_fourcc(*'DIVX')
+out = cv.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
+
 
 def draw_flow(img, flow, step=16):
     h, w = img.shape[:2]
@@ -56,13 +59,13 @@ while True:
 
     flow = cv.calcOpticalFlowFarneback(old_gray, frame_gray, None, 0.5, 5, 15, 3, 5, 1.2, 0)
 
-    # for i, (new, old) in enumerate(zip(good_new, good_old)):
-    #     a, b = new.ravel()
-    #     c, d = old.ravel()
-    #     cv.circle(frame_gray, (0, 0), 10, [255, 0, 0], -1)
-    #     if (abs(a-c)*abs(c-d)) > 1000:
-    #         cv.rectangle(frame_gray, (a, b), (c, d), [0, 255, 0], 3)
-    #     cv.circle(frame_gray, (a, b), 5, [255, 0, 0], -1)
+    # for i, (new, old) in enumerate(zip(good_,new, good_old)):
+    #     #     a, b = new.ravel()
+    #     #     c, d = old.ravel()
+    #     #     cv.circle(frame_gray, (0, 0), 10, [255, 0, 0], -1)
+    #     #     if (abs(a-c)*abs(c-d)) > 1000:
+    #     #         cv.rectangle(frame_gray, (a, b), (c, d), [0, 255, 0], 3)
+    #     #     cv.circle(frame_gray, (a, b) 5, [255, 0, 0], -1)
     # change the quality Level to remove noise
     # cv.imshow("OpticalFlow", frame_gray)
 
@@ -74,26 +77,29 @@ while True:
     for i in range(len(contours)):
         area = cv.contourArea(contours[i])
         if area > 11000:
-            contours[0] = contours[i]
+            # contours[0] = contours[i]
             x, y, w, h = cv.boundingRect(contours[i])
-            cv.rectangle(frame_gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            cv.rectangle(new_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
             center_x = x + w / 2
             center_y = y + h / 2
-            if (not x):
-                if (center_x < 160):
-                    if (x + w <= 160):
-                        print("go straight")
-                    else:
-                        print("turn left")
-                elif (center_x > 160) and (center_x <= 320):
+            if (center_x < 160):
+                if (x + w <= 160):
+                    print("go straight")
+                else:
                     print("turn left")
-                elif (center_x > 320) and (center_x < 480):
+            elif (center_x > 160) and (center_x <= 320):
+                print("turn left")
+            elif (center_x > 320) and (center_x < 480):
+                print("turn right")
+            elif (center_x >= 480):
+                if (x < 480):
                     print("turn right")
-                elif (center_x >= 480):
-                    if (x < 480):
-                        print("turn right")
-                    else:
-                        print("go straight")
+                else:
+                    print("go straight")
+    # save = cv.cvtColor(new_frame, cv.COLOR_GRAY2BGR)
+    save = cv.resize(new_frame, (640, 480), fx=0, fy=0, interpolation=cv.INTER_CUBIC)
+    out.write(save)
     cv.imshow("OpticalFlow", new_frame)
     cv.imshow("Original", frame_gray)
     old_gray = frame_gray.copy()
@@ -101,4 +107,5 @@ while True:
 
     key = cv.waitKey(30)
     if key == ord('q'):
+        out.release()
         break
